@@ -45,8 +45,10 @@ struct hpcl_comp_config {
   enum comp_algo_type {
     GLOBAL_PRIVATE = 0,
     LOCAL_WORD_MATCHING=1,
-    BDI_WORD_MATCHING=2,
-    ABPD_LOCAL_WORD_MATCHING=3,
+    BDI_WORD_MATCHING,
+    ABPD_LOCAL_WORD_MATCHING,
+    CPACK_WORD_MATCHING,
+    FPC_WORD_MATCHING
   };
 
 

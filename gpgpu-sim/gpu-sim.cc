@@ -74,6 +74,11 @@ class  gpgpu_sim_wrapper {};
 #include <sstream>
 #include <string>
 
+
+// added by abpd
+#include "hpcl_comp_cpack_pl.h"
+#include "hpcl_comp_fpc_pl.h"
+
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 
@@ -171,7 +176,10 @@ std::vector<hpcl_comp_lwm_pl<unsigned long long>* > g_hpcl_comp_lwm_pl_8B;
 // added by abpd
 
 std::vector<hpcl_comp_bdi_pl<unsigned int>* > g_hpcl_comp_bdi_pl_4B;
+std::vector<hpcl_comp_fpc_pl<unsigned int>* > g_hpcl_comp_fpc_pl_4B;
 std::vector<hpcl_comp_abpd_local_pl<unsigned int>* > g_hpcl_comp_abpd_local_pl_4B;
+std::vector<hpcl_comp_cpack_pl<unsigned int>* > g_hpcl_comp_cpack_pl_4B;
+
 
 void power_config::reg_options(class OptionParser * opp)
 {
@@ -749,7 +757,7 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
 		
 		
 	}
-	/********************************************** BDI based****/
+	/********************************************** BDI based ************************************/
 
         
 	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
@@ -773,8 +781,54 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
 	}
 
 
+	/********************************************** CPACK based ************************************/
+
+        
+	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::CPACK_WORD_MATCHING)
+      	{
+
+		// mcs	
+		unsigned tot_sub_partition_no = g_hpcl_comp->get_mem_no() * g_hpcl_comp->get_sub_partition_no_per_memory_channel();
+		//TODO: By default we are considering it for 4B word
+
+		g_hpcl_comp_cpack_pl_4B.clear();
+	  	g_hpcl_comp_cpack_pl_4B.resize(tot_sub_partition_no, NULL);
+		
+	  	for(int i = 0; i < tot_sub_partition_no; i++) 
+		{
+			// cpack 9 stage pipeline for compression
+	      		g_hpcl_comp_cpack_pl_4B[i] = new hpcl_comp_cpack_pl<unsigned int>(9,i);
+	      		g_hpcl_comp_cpack_pl_4B[i]->create(g_hpcl_comp_config.hpcl_comp_buffer_size);
+	  	}	
+		
+	}
 
 
+	/********************************************** FPC based ************************************/
+
+        
+	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::FPC_WORD_MATCHING)
+      	{
+
+		// mcs	
+		unsigned tot_sub_partition_no = g_hpcl_comp->get_mem_no() * g_hpcl_comp->get_sub_partition_no_per_memory_channel();
+		//TODO: By default we are considering it for 4B word
+
+		g_hpcl_comp_fpc_pl_4B.clear();
+	  	g_hpcl_comp_fpc_pl_4B.resize(tot_sub_partition_no, NULL);
+		
+	  	for(int i = 0; i < tot_sub_partition_no; i++) 
+		{
+			// cpack 3 stage pipeline for compression
+	      		g_hpcl_comp_fpc_pl_4B[i] = new hpcl_comp_fpc_pl<unsigned int>(3,i);
+	      		g_hpcl_comp_fpc_pl_4B[i]->create(g_hpcl_comp_config.hpcl_comp_buffer_size);
+	  	}	
+		
+	}
+
+
+
+	
 
 
 
@@ -1510,10 +1564,22 @@ void gpgpu_sim::cycle()
 		}
 
 	    // added by abpd
+	    	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::CPACK_WORD_MATCHING)
+      		{
+			
+			 mf = g_hpcl_comp_cpack_pl_4B[i]->top_compressed_mem_fetch();
+		}
+
 		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
       		{
 			 mf = g_hpcl_comp_bdi_pl_4B[i]->top_compressed_mem_fetch();
 		}
+
+		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::FPC_WORD_MATCHING)
+      		{
+			 mf = g_hpcl_comp_fpc_pl_4B[i]->top_compressed_mem_fetch();
+		}
+
 		/***************abpd local based*****/
 		
 		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::ABPD_LOCAL_WORD_MATCHING)
@@ -1562,12 +1628,25 @@ void gpgpu_sim::cycle()
 		else if(g_hpcl_comp_config.hpcl_comp_word_size == 8) 	g_hpcl_comp_lwm_pl_8B[i]->pop_compressed_mem_fetch();
 		else assert(0);
 		}
+
+		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::CPACK_WORD_MATCHING)
+		{
+			g_hpcl_comp_cpack_pl_4B[i]->pop_compressed_mem_fetch();
+
+
+		}
+
 		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
 		{
 			g_hpcl_comp_bdi_pl_4B[i]->pop_compressed_mem_fetch();
 
 		}
-		
+		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::FPC_WORD_MATCHING)
+		{
+			g_hpcl_comp_fpc_pl_4B[i]->pop_compressed_mem_fetch();
+
+		}
+	
 		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::ABPD_LOCAL_WORD_MATCHING)
 		{
 			g_hpcl_comp_abpd_local_pl_4B[i]->pop_compressed_mem_fetch();
@@ -1592,49 +1671,79 @@ void gpgpu_sim::cycle()
 	  mem_fetch* mf = m_memory_sub_partition[i]->top();
 	  bool has_comp_buffer_space = false;
 
-	   if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::LOCAL_WORD_MATCHING)
-	   {
-	  if(g_hpcl_comp_config.hpcl_comp_word_size == 2) 	has_comp_buffer_space = g_hpcl_comp_lwm_pl_2B[i]->has_comp_buffer_space();
-	  else if(g_hpcl_comp_config.hpcl_comp_word_size == 4) 	has_comp_buffer_space = g_hpcl_comp_lwm_pl_4B[i]->has_comp_buffer_space();
-	  else if(g_hpcl_comp_config.hpcl_comp_word_size == 8) 	has_comp_buffer_space = g_hpcl_comp_lwm_pl_8B[i]->has_comp_buffer_space();
-	  else assert(0);
-		}
+	  if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::LOCAL_WORD_MATCHING)
+	  {
+	  	if(g_hpcl_comp_config.hpcl_comp_word_size == 2) 	has_comp_buffer_space = g_hpcl_comp_lwm_pl_2B[i]->has_comp_buffer_space();
+	  	else if(g_hpcl_comp_config.hpcl_comp_word_size == 4) 	has_comp_buffer_space = g_hpcl_comp_lwm_pl_4B[i]->has_comp_buffer_space();
+	  	else if(g_hpcl_comp_config.hpcl_comp_word_size == 8) 	has_comp_buffer_space = g_hpcl_comp_lwm_pl_8B[i]->has_comp_buffer_space();
+	  	else assert(0);
+	  }
 	  if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
 	  {
 		has_comp_buffer_space = g_hpcl_comp_bdi_pl_4B[i]->has_comp_buffer_space();
 	  }
-	  
+	 
+	  if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::FPC_WORD_MATCHING)
+	  {
+		has_comp_buffer_space = g_hpcl_comp_fpc_pl_4B[i]->has_comp_buffer_space();
+	  }
+
 	  if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::ABPD_LOCAL_WORD_MATCHING)
 	  {
 		has_comp_buffer_space = g_hpcl_comp_abpd_local_pl_4B[i]->has_comp_buffer_space();
 	  }
 	  
+	  if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::CPACK_WORD_MATCHING)
+	  {
 
+		has_comp_buffer_space = g_hpcl_comp_cpack_pl_4B[i]->has_comp_buffer_space();
+	  }
+	  
+	
 	  
 	  if(has_comp_buffer_space == true) {
+
 	    //added by kh(030816)
-	    if(g_hpcl_comp_config.hpcl_comp_en == 1) {
+	    if(g_hpcl_comp_config.hpcl_comp_en == 1) 
+	    {
 	      //save data into mem_fetch object
 	      //mem_fetch* mf = (mem_fetch*)data;
 	      //unsigned node_id = g_icnt_interface->get_node_id(input);
 	      //if(g_mc_placement_config.is_mc_node(node_id) == true) {
-	      if(mf) {
+	      if(mf) 
+	      {
 		  unsigned char* real_data = mf->config_real_data(mf->get_data_size());
 		  g_hpcl_comp->get_cache_data(mf, real_data);
 	      }
 	    }
-
+		
 		
 	    // added by abpd
-	    
+	   
+	    	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::CPACK_WORD_MATCHING)
+		{
+			g_hpcl_comp_cpack_pl_4B[i]->get_input()->set_mem_fetch(mf);	//send mem_fetch to compressor
+	      		g_hpcl_comp_cpack_pl_4B[i]->run();
+	
+
+		}
+
 		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
 		{
 			
 			g_hpcl_comp_bdi_pl_4B[i]->get_input()->set_mem_fetch(mf);	//send mem_fetch to compressor
-	      			g_hpcl_comp_bdi_pl_4B[i]->run();
+	      		g_hpcl_comp_bdi_pl_4B[i]->run();
 			
 		}
-				
+		
+		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::FPC_WORD_MATCHING)
+		{
+			
+			g_hpcl_comp_fpc_pl_4B[i]->get_input()->set_mem_fetch(mf);	//send mem_fetch to compressor
+	      		g_hpcl_comp_fpc_pl_4B[i]->run();
+			
+		}
+
 		if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::ABPD_LOCAL_WORD_MATCHING)
 		{	
 			g_hpcl_comp_abpd_local_pl_4B[i]->get_input()->set_mem_fetch(mf);	//send mem_fetch to compressor

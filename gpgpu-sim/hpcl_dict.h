@@ -15,6 +15,8 @@
 #include <cassert>
 #include <cmath>
 
+using namespace std;
+
 template<class K>
 class hpcl_dict {
 /*
@@ -25,6 +27,7 @@ public:
 public:
   hpcl_dict(unsigned int dict_size, enum hpcl_dict_rep_policy policy);
   ~hpcl_dict() {};
+
 
 //compression
 private:

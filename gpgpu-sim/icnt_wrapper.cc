@@ -264,7 +264,6 @@ static void* perf_pop(unsigned output, perf_packet_type type, unsigned long long
 			} else {
 				assert(1==0);
 			} 
-			cout<<"Poping data Data val="<<endl;
 			///
 
 			int last_index = -1;

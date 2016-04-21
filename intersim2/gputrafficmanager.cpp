@@ -378,7 +378,7 @@ void GPUTrafficManager::_GeneratePacket(int source, int stype, int cl, int time,
     << "." << endl;
   }
  
-  cout<<"PDAB Number of flits \n"<<size<<"\n";
+ // cout<<"PDAB Number of flits \n"<<size<<"\n";
   for ( int i = 0; i < size; ++i ) {
     Flit * f  = Flit::New();
     f->id     = _cur_id++;
@@ -585,12 +585,14 @@ void GPUTrafficManager::_Step()
 		  {
 		  if(f->head==false && f->raw_data.size()>0)
 		  {
+			  /*
 			  cout<<"pdab get raw flit data  id :"<<f->id<<"\n";
 			for(int i=0;i<f->raw_data.size();i++)
 			{
 				printf("%d",f->raw_data[i]);
 			}
 			printf("\n");
+			*/
 			/*
 			if(g_hpcl_global_decomp_pl_2B[n]->added_flit.find(f->id)==g_hpcl_global_decomp_pl_2B[n]->added_flit.end())
 			{

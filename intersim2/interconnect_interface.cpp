@@ -294,6 +294,8 @@ void* InterconnectInterface::Pop(unsigned deviceID)
 
   if(mf)
   {
+	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
+	{
 	  /* decompress */
 	  if(mf->get_comp_data_size_abpd()>0)
 	  {
@@ -322,6 +324,7 @@ void* InterconnectInterface::Pop(unsigned deviceID)
 			cout<<" SID .. "<<mf->get_sid()<<"\n";
 		  }
 	  }
+	}
 
   }
   return data;
