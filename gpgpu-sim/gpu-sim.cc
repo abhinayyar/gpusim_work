@@ -1704,16 +1704,18 @@ void gpgpu_sim::cycle()
 	  if(has_comp_buffer_space == true) {
 
 	    //added by kh(030816)
-	    if(g_hpcl_comp_config.hpcl_comp_en == 1) 
-	    {
+	    if(g_hpcl_comp_config.hpcl_comp_en == 1) {
 	      //save data into mem_fetch object
 	      //mem_fetch* mf = (mem_fetch*)data;
 	      //unsigned node_id = g_icnt_interface->get_node_id(input);
 	      //if(g_mc_placement_config.is_mc_node(node_id) == true) {
 	      if(mf) 
 	      {
-		  unsigned char* real_data = mf->config_real_data(mf->get_data_size());
-		  g_hpcl_comp->get_cache_data(mf, real_data);
+		        if(mf->get_type()!=CTRL_MSG)
+			{
+		  		unsigned char* real_data = mf->config_real_data(mf->get_data_size());
+		  		g_hpcl_comp->get_cache_data(mf, real_data);
+			}
 	      }
 	    }
 		

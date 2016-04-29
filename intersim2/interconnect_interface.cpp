@@ -226,6 +226,8 @@ void InterconnectInterface::Push(unsigned input_deviceID, unsigned output_device
     case WRITE_REQUEST: packet_type = Flit::WRITE_REQUEST  ;break;
     case READ_REPLY:    packet_type = Flit::READ_REPLY     ;break;
     case WRITE_ACK:     packet_type = Flit::WRITE_REPLY    ;break;
+			// added by abpd
+    case CTRL_MSG:     packet_type = Flit::CTRL_MSG    ;break;
     default: assert (0);
   }
 
@@ -294,6 +296,14 @@ void* InterconnectInterface::Pop(unsigned deviceID)
 
   if(mf)
   {
+	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::CPACK_WORD_MATCHING)
+	{
+		if(mf->get_type()==CTRL_MSG)
+		{
+			cout<<" Abhishek Got ctrl msg .. \n";
+		}
+	}
+
 	if(g_hpcl_comp_config.hpcl_comp_algo == hpcl_comp_config::BDI_WORD_MATCHING)
 	{
 	  /* decompress */

@@ -266,6 +266,69 @@ vector<string> hpcl_comp_cpack_pl_proc<K>::input_processor(vector<string> input_
 		
 	return output_to_get;	
 }
+void get_red_data(vector<string> output_to_get,unordered_map<string,code_table_glb*> pattern_finder)
+{
+	for(int i=0;i<output_to_get.size();i++)
+	{
+		string str = output_to_get[i];
+		string key1 = str.substr(0,2);
+		string key2 = str.substr(0,4);
+
+		auto it = pattern_finder.begin();
+
+		for(;it!=pattern_finder.end();it++)
+		{
+			pair<string,code_table_glb*> p=*it;
+			if(p.second->code.compare(key1)==0)
+			{
+				if(abpd_anal_ptr->bdi_anal.find(key1)!=abpd_anal_ptr->bdi_anal.end())
+				{
+					if(abpd_anal_ptr->bdi_anal[key1].find(str.substr(2))!=abpd_anal_ptr->bdi_anal[key1].end())
+					{
+						abpd_anal_ptr->bdi_anal[key1][str.substr(2)]++;	
+					}
+					else
+					{
+						abpd_anal_ptr->bdi_anal[key1].insert(make_pair(str.substr(2),1));
+					}
+
+				}
+				else
+				{
+					unordered_map<string,int> tmp;
+					abpd_anal_ptr->bdi_anal.insert(make_pair(key1,tmp));
+				}
+			}
+			else if(p.second->code.compare(key2)==0)
+			{
+				if(abpd_anal_ptr->bdi_anal.find(key2)!=abpd_anal_ptr->bdi_anal.end())
+				{
+					if(abpd_anal_ptr->bdi_anal[key2].find(str.substr(4))!=abpd_anal_ptr->bdi_anal[key2].end())
+					{
+						abpd_anal_ptr->bdi_anal[key2][str.substr(4)]++;	
+					}
+					else
+					{
+						abpd_anal_ptr->bdi_anal[key2].insert(make_pair(str.substr(4),1));
+					}
+
+				}
+				else
+				{
+					unordered_map<string,int> tmp;
+					abpd_anal_ptr->bdi_anal.insert(make_pair(key2,tmp));
+				}
+
+			}
+			else
+			{
+				// DO NOTHING
+			}
+
+
+		}
+	}
+}
 // added by abpd
 template<class K>
 void hpcl_comp_cpack_pl_proc<K>::run(unordered_map<string,code_table_glb*> pattern_finder,vector<pair<string,string> > word_dict_glb)
@@ -298,6 +361,12 @@ void hpcl_comp_cpack_pl_proc<K>::run(unordered_map<string,code_table_glb*> patte
 	float bytes_count=0;
 	output_to_get=input_processor(input_to_process,pattern_finder,word_dict_glb,bytes_count);
 
+	/* get redundancy across and within words */
+	get_red_data(output_to_get,pattern_finder);
+	abpd_anal_ptr->write_to_file();
+	//abpd_anal_ptr->display_red();
+	abpd_anal_ptr->bdi_anal.clear();
+
 	string output;
 	/* TODO for getting actual data and sending it to network */
 	for(int i=0;i<output_to_get.size();i++)
@@ -305,8 +374,10 @@ void hpcl_comp_cpack_pl_proc<K>::run(unordered_map<string,code_table_glb*> patte
 		output= output + output_to_get[i];
 	}
 
+	#ifdef ABPD_DEBUG
 	cout<<"Input : 0x"<<packet<<endl;
 	cout<<"Output : 0x"<<output<<endl;
+	#endif
 
 	unsigned comp_byte_size = ceil((double)bytes_count);
 

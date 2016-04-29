@@ -8,7 +8,6 @@
 #include "hpcl_comp_pl_data.h"
 #include "hpcl_cpack_dict.h"
 
-
 #include <vector>
 #include <unordered_map>
 #include <utility>
@@ -269,7 +268,14 @@ void hpcl_comp_cpack_pl<K>::run()
 			mem_fetch* mf = tmp->get_mem_fetch();
 			if(mf)
 			{
-				//cout<<" Push Valid mf .. "<< i<<"\n";
+				// create a new mf for ctrl msg
+				mem_fetch *ctrl_mf = new mem_fetch(CTRL_MSG,mf->get_tpc(),32,mf->get_wid(),mf->get_sid());
+				//mf->set_status(IN_ICNT_TO_SHADER,gpu_sim_cycle+gpu_tot_sim_cycle);
+				ctrl_mf->set_comp_data_size(32);
+				ctrl_mf->init_size();
+
+				/* TMP commented for deadlock problem */
+				//m_comp_buffer.push_back(ctrl_mf);	
 				m_comp_buffer.push_back(mf);
     				assert(m_comp_buffer.size() <= m_comp_buffer_size);
 
@@ -292,7 +298,6 @@ void hpcl_comp_cpack_pl<K>::run()
 			mem_fetch* mf = tmp->get_mem_fetch();
 			if(mf)
 			{
-				//cout<<" Shift valid mf : "<<i<<endl;
 				m_comp_pl_proc[i-1]->get_output()->set_mem_fetch(mf);
 			        unordered_set<string> lcl = m_comp_pl_proc[i]->get_local_dict();
 				m_comp_pl_proc[i-1]->set_local_dict(lcl);
@@ -304,40 +309,7 @@ void hpcl_comp_cpack_pl<K>::run()
 		
 	}		
 
-	/*
-
-	if(m_comp_pl_proc[1]->execute_data)
-	{
-		m_comp_pl_proc[1]->run();
-		hpcl_comp_pl_data* tmp = m_comp_pl_proc[1]->get_output();
-  		assert(tmp);
-  		mem_fetch* mf = tmp->get_mem_fetch();
 		
-		m_comp_pl_proc[1]->execute_data = false;
-		m_comp_pl_proc[0]->fetch_data = true;
-		 if(mf) {
-
-	  	// push data to memory buffer
-    		m_comp_buffer.push_back(tmp->get_mem_fetch());
-    		assert(m_comp_buffer.size() <= m_comp_buffer_size);
-  		}
-  		tmp->clean();
-
-	}
-  	if(m_comp_pl_proc[0]->fetch_data)
-  	{
-		 mem_fetch* mf = m_comp_pl_proc[0]->get_mf_input();
-		 if(mf) {
-		 	m_comp_pl_proc[1]->execute_data = true;
-		 	m_comp_pl_proc[0]->fetch_data=false;
-		 	m_comp_pl_proc[1]->set_output(new hpcl_comp_pl_data);
-		 	m_comp_pl_proc[1]->set_mf_input(mf);
-		}
-
-
-  	}
-	*/
-	
 }
 
 template<class K>

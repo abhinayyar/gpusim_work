@@ -186,8 +186,12 @@ static void perf_push(unsigned input, unsigned output, void* data, unsigned int 
     mem_fetch* mf = (mem_fetch*)data;
     unsigned node_id = g_icnt_interface->get_node_id(input);
     if(g_mc_placement_config.is_mc_node(node_id) == true) {
-      unsigned char* real_data = mf->config_real_data(mf->get_data_size());
-      g_hpcl_comp->get_cache_data(mf, real_data);
+	    // TODO : Need to handle for candi
+	    if(mf->get_type()!=CTRL_MSG)
+	    {
+      		unsigned char* real_data = mf->config_real_data(mf->get_data_size());
+      		g_hpcl_comp->get_cache_data(mf, real_data);
+	    }
 //      printf("Data = ");
 //      for(int i = mf->get_data_size()-1; i >= 0 ; i--) {
 //      	printf("%02x", mf->get_real_data(i));

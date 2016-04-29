@@ -36,7 +36,8 @@ enum mf_type {
    READ_REQUEST = 0,
    WRITE_REQUEST,
    READ_REPLY, // send to shader
-   WRITE_ACK
+   WRITE_ACK,
+   CTRL_MSG
 };
 
 #define MF_TUP_BEGIN(X) enum X {
@@ -55,7 +56,22 @@ public:
                unsigned wid,
                unsigned sid, 
                unsigned tpc, 
-               const class memory_config *config );
+    	       const class memory_config *config );
+    
+    // added by abpd
+    mem_fetch(enum mf_type type,unsigned tpc,unsigned size,
+		    unsigned wid,
+               unsigned sid)
+    {
+	    m_type = type;
+	    m_tpc = tpc;
+	    m_sid= sid;
+	    m_wid=wid;
+	    //m_ctrl_size = size;
+	    	m_status_timestamp.resize(END_STATUS+1,0);
+
+    }
+    
    ~mem_fetch();
 
    void set_status( enum mem_fetch_status status, unsigned long long cycle );
@@ -73,7 +89,8 @@ public:
    void do_atomic();
 
    void print( FILE *fp, bool print_inst = true ) const;
-
+   mem_access_t  get_access(){
+		   return m_access;}
    const addrdec_t &get_tlx_addr() const { return m_raw_addr; }
    unsigned get_data_size() const { return m_data_size; }
    void     set_data_size( unsigned size ) { m_data_size=size; }
